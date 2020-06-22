@@ -3,7 +3,10 @@ package com.jmeter.sampler.util;
 import org.apache.jmeter.testelement.property.StringProperty;
 
 public class DebugStringProperty extends StringProperty {
-    public DebugStringProperty(String name, String value) {
+
+	private static final long serialVersionUID = 2845255156160100752L;
+
+	public DebugStringProperty(String name, String value) {
         super(name, value);
         log.info("Created String property with name: " + name + ", value: " + value);
     }

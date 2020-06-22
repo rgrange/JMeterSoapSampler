@@ -3,7 +3,7 @@ package com.jmeter.sampler.assertions.gui;
 
 import com.jmeter.sampler.assertions.SOAPXPathAssertion;
 import com.jmeter.sampler.util.SOAPMessages;
-import com.jmeter.protocol.soap.control.gui.CustomSOAPSamplerGui;
+import com.jmeter.protocol.soap.control.gui.MtomSOAPSamplerGui;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
@@ -43,7 +43,7 @@ public class SOAPXPathAssertionGui extends AbstractAssertionGui {
     private JCheckBox checkContentIDCheck;
     private JTextField checkContentIDText;
     private JCheckBox checkContentTypeCheck;
-    private JComboBox checkContentTypeCbx;
+    private JComboBox<String> checkContentTypeCbx;
     private JTable namespaceMap;
     private SOAPXPathAssertionGui.NamespaceMapTableModel model = new SOAPXPathAssertionGui.NamespaceMapTableModel();
 
@@ -180,7 +180,7 @@ public class SOAPXPathAssertionGui extends AbstractAssertionGui {
             }
         });
         this.checkContentTypeCheck = new JCheckBox(SOAPMessages.getResString("soap_xpath_assertion_check_att_contenttype"));
-        this.checkContentTypeCbx = new JComboBox(CustomSOAPSamplerGui.contentTypes);
+        this.checkContentTypeCbx = new JComboBox<String>(MtomSOAPSamplerGui.contentTypes);
         this.checkContentTypeCbx.setEditable(true);
         this.checkContentTypeCheck.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent event) {
@@ -352,9 +352,9 @@ public class SOAPXPathAssertionGui extends AbstractAssertionGui {
     }
 
     public static class NamespaceMapTableModel implements TableModel {
-        private ArrayList listeners = new ArrayList();
-        private ArrayList namespaceMap = new ArrayList();
-        private TreeMap namespaceTree = new TreeMap();
+        private ArrayList<TableModelListener> listeners = new ArrayList<>();
+        private ArrayList<SOAPXPathAssertionGui.NamespaceMapElement> namespaceMap = new ArrayList<>();
+        private TreeMap<String, String> namespaceTree = new TreeMap<>();
 
         public NamespaceMapTableModel() {
         }
@@ -363,24 +363,20 @@ public class SOAPXPathAssertionGui extends AbstractAssertionGui {
             this.listeners.add(listener);
         }
 
-        public TreeMap getNamespaceMap() {
+        public TreeMap<String, String> getNamespaceMap() {
             return this.namespaceTree;
         }
 
         public void initFromTreeMap() {
             this.namespaceMap.clear();
-            Iterator it = this.namespaceTree.keySet().iterator();
-
-            while(it.hasNext()) {
-                String prefix = (String)it.next();
-                String uri = (String)this.namespaceTree.get(prefix);
+            for(String prefix : namespaceTree.keySet()) {
+                String uri = this.namespaceTree.get(prefix);
                 this.namespaceMap.add(new SOAPXPathAssertionGui.NamespaceMapElement(prefix, uri));
             }
-
             this.postTableEvent();
         }
 
-        public Class getColumnClass(int col) {
+        public Class<String> getColumnClass(int col) {
             return String.class;
         }
 
@@ -455,7 +451,7 @@ public class SOAPXPathAssertionGui extends AbstractAssertionGui {
 
         private void postTableEvent() {
             TableModelEvent event = new TableModelEvent(this);
-            Iterator listIt = this.listeners.iterator();
+            Iterator<TableModelListener> listIt = this.listeners.iterator();
 
             while(listIt.hasNext()) {
                 ((TableModelListener)listIt.next()).tableChanged(event);

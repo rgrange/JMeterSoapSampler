@@ -2,6 +2,7 @@ package com.jmeter.sampler.config.gui;
 
 import java.awt.event.ActionEvent;
 import java.util.TreeMap;
+
 import javax.swing.AbstractAction;
 import javax.swing.ActionMap;
 import javax.swing.InputMap;
@@ -18,130 +19,136 @@ import javax.swing.undo.UndoManager;
 import javax.swing.undo.UndoableEdit;
 
 public class UndoableJTextField extends JTextField {
-    private static final long serialVersionUID = -8629818843640232549L;
-    private UndoManager currentUndoManager = null;
-    private TreeMap undoableDocumentMap = new TreeMap();
 
-    public UndoableJTextField() {
-    }
+	private static final long serialVersionUID = -8629818843640232549L;
 
-    public UndoableJTextField(Document doc, String text, int columns) {
-        super(doc, text, columns);
-    }
+	private UndoManager currentUndoManager = null;
+	private TreeMap<Object, UndoableJTextField.UndoableDocument> undoableDocumentMap = new TreeMap<>();
 
-    public UndoableJTextField(int columns) {
-        super(columns);
-    }
+	public UndoableJTextField() {
+	}
 
-    public UndoableJTextField(String text) {
-        super(text);
-    }
+	public UndoableJTextField(Document doc, String text, int columns) {
+		super(doc, text, columns);
+	}
 
-    public UndoableJTextField(String text, int columns) {
-        super(text, columns);
-    }
+	public UndoableJTextField(int columns) {
+		super(columns);
+	}
 
-    public void initActionMap(Object obj) {
-        String actionMapKeyPrefix = obj.getClass().getName() + "_" + obj.hashCode();
-        String undoActionKey = actionMapKeyPrefix + "_UNDO";
-        String redoActionKey = actionMapKeyPrefix + "_REDO";
-        this.getDocument().addUndoableEditListener(new UndoableEditListener() {
-            public void undoableEditHappened(UndoableEditEvent e) {
-                if(UndoableJTextField.this.currentUndoManager != null) {
-                    UndoableEdit ue = e.getEdit();
-                    UndoableJTextField.this.currentUndoManager.addEdit(ue);
-                }
+	public UndoableJTextField(String text) {
+		super(text);
+	}
 
-            }
-        });
-        InputMap im = this.getInputMap();
-        ActionMap am = this.getActionMap();
-        im.put(KeyStroke.getKeyStroke(90, 2, true), undoActionKey);
-        am.put(undoActionKey, new AbstractAction() {
-            private static final long serialVersionUID = -3929069112755477881L;
+	public UndoableJTextField(String text, int columns) {
+		super(text, columns);
+	}
 
-            public void actionPerformed(ActionEvent e) {
-                if(UndoableJTextField.this.currentUndoManager != null && UndoableJTextField.this.currentUndoManager.canUndo()) {
-                    try {
-                        UndoableJTextField.this.currentUndoManager.undo();
-                    } catch (CannotUndoException var3) {
-                        ;
-                    }
-                }
+	public void initActionMap(Object obj) {
+		String actionMapKeyPrefix = obj.getClass().getName() + "_" + obj.hashCode();
+		String undoActionKey = actionMapKeyPrefix + "_UNDO";
+		String redoActionKey = actionMapKeyPrefix + "_REDO";
+		this.getDocument().addUndoableEditListener(new UndoableEditListener() {
+			@Override
+			public void undoableEditHappened(UndoableEditEvent e) {
+				if(UndoableJTextField.this.currentUndoManager != null) {
+					UndoableEdit ue = e.getEdit();
+					UndoableJTextField.this.currentUndoManager.addEdit(ue);
+				}
 
-            }
-        });
-        im.put(KeyStroke.getKeyStroke(89, 2, true), redoActionKey);
-        am.put(redoActionKey, new AbstractAction() {
-            private static final long serialVersionUID = -5914985114920163371L;
+			}
+		});
+		InputMap im = this.getInputMap();
+		ActionMap am = this.getActionMap();
+		im.put(KeyStroke.getKeyStroke(90, 2, true), undoActionKey);
+		am.put(undoActionKey, new AbstractAction() {
+			private static final long serialVersionUID = -3929069112755477881L;
 
-            public void actionPerformed(ActionEvent e) {
-                if(UndoableJTextField.this.currentUndoManager != null && UndoableJTextField.this.currentUndoManager.canRedo()) {
-                    try {
-                        UndoableJTextField.this.currentUndoManager.redo();
-                    } catch (CannotUndoException var3) {
-                        ;
-                    }
-                }
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if(UndoableJTextField.this.currentUndoManager != null && UndoableJTextField.this.currentUndoManager.canUndo()) {
+					try {
+						UndoableJTextField.this.currentUndoManager.undo();
+					} catch (CannotUndoException var3) {
+						;
+					}
+				}
 
-            }
-        });
-    }
+			}
+		});
+		im.put(KeyStroke.getKeyStroke(89, 2, true), redoActionKey);
+		am.put(redoActionKey, new AbstractAction() {
+			private static final long serialVersionUID = -5914985114920163371L;
 
-    public void switchDocument(Object container, Object keyObj, String contents) {
-        this.currentUndoManager = null;
-        String key = container.getClass().getName() + "_" + container.hashCode() + "_" + keyObj.getClass().getName() + keyObj.hashCode();
-        UndoableJTextField.UndoableDocument ud = (UndoableJTextField.UndoableDocument)this.undoableDocumentMap.get(key);
-        if(ud == null) {
-            ud = new UndoableJTextField.UndoableDocument();
-            ud.undoManager = new UndoManager();
-            ud.document = new PlainDocument();
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if(UndoableJTextField.this.currentUndoManager != null && UndoableJTextField.this.currentUndoManager.canRedo()) {
+					try {
+						UndoableJTextField.this.currentUndoManager.redo();
+					} catch (CannotUndoException var3) {
+						;
+					}
+				}
 
-            try {
-                ud.document.insertString(0, contents, (AttributeSet)null);
-            } catch (BadLocationException var7) {
-                ;
-            }
+			}
+		});
+	}
 
-            this.undoableDocumentMap.put(key, ud);
-            ud.document.addUndoableEditListener(new UndoableEditListener() {
-                public void undoableEditHappened(UndoableEditEvent e) {
-                    if(UndoableJTextField.this.currentUndoManager != null) {
-                        UndoableEdit ue = e.getEdit();
-                        UndoableJTextField.this.currentUndoManager.addEdit(ue);
-                    }
+	public void switchDocument(Object container, Object keyObj, String contents) {
+		this.currentUndoManager = null;
+		String key = container.getClass().getName() + "_" + container.hashCode() + "_" + keyObj.getClass().getName() + keyObj.hashCode();
+		UndoableJTextField.UndoableDocument ud = this.undoableDocumentMap.get(key);
+		if(ud == null) {
+			ud = new UndoableJTextField.UndoableDocument();
+			ud.undoManager = new UndoManager();
+			ud.document = new PlainDocument();
 
-                }
-            });
-        }
+			try {
+				ud.document.insertString(0, contents, (AttributeSet)null);
+			} catch (BadLocationException var7) {
+				;
+			}
 
-        this.setDocument(ud.document);
-        this.currentUndoManager = ud.undoManager;
-    }
+			this.undoableDocumentMap.put(key, ud);
+			ud.document.addUndoableEditListener(new UndoableEditListener() {
+				@Override
+				public void undoableEditHappened(UndoableEditEvent e) {
+					if(UndoableJTextField.this.currentUndoManager != null) {
+						UndoableEdit ue = e.getEdit();
+						UndoableJTextField.this.currentUndoManager.addEdit(ue);
+					}
 
-    public void clear() {
-        this.currentUndoManager = null;
-        this.setDocument(new PlainDocument());
-    }
+				}
+			});
+		}
 
-    public void clear(String text) {
-        this.currentUndoManager = null;
-        PlainDocument doc = new PlainDocument();
+		this.setDocument(ud.document);
+		this.currentUndoManager = ud.undoManager;
+	}
 
-        try {
-            doc.insertString(0, text, (AttributeSet)null);
-        } catch (BadLocationException var4) {
-            ;
-        }
+	public void clear() {
+		this.currentUndoManager = null;
+		this.setDocument(new PlainDocument());
+	}
 
-        this.setDocument(doc);
-    }
+	public void clear(String text) {
+		this.currentUndoManager = null;
+		PlainDocument doc = new PlainDocument();
 
-    public static class UndoableDocument {
-        public Document document = null;
-        public UndoManager undoManager = null;
+		try {
+			doc.insertString(0, text, (AttributeSet)null);
+		} catch (BadLocationException var4) {
+			;
+		}
 
-        public UndoableDocument() {
-        }
-    }
+		this.setDocument(doc);
+	}
+
+	public static class UndoableDocument {
+		public Document document = null;
+		public UndoManager undoManager = null;
+
+		public UndoableDocument() {
+		}
+	}
 }

@@ -7,6 +7,7 @@ import java.io.StringReader;
 import javax.activation.DataSource;
 
 public class StringDataSource implements DataSource {
+
     private String str;
     private String contentType;
 
