@@ -199,6 +199,7 @@ public class MtomSOAPSampler extends AbstractSampler {
 		return this.getPropertyAsBoolean(UPDATE_ATTACHMENT_REFS, true);
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public SampleResult sample(Entry e) {
 		String url = this.getURLData();
@@ -381,7 +382,6 @@ public class MtomSOAPSampler extends AbstractSampler {
 					rootResult = result;
 				}
 
-				@SuppressWarnings("unchecked")
 				Iterator<AttachmentPart> attIt = response.getAttachments();
 
 				while(attIt.hasNext()) {
