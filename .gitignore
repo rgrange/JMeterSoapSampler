@@ -1,0 +1,7 @@
+# IDE Files
+.project
+.classpath
+/.settings/
+
+# Maven generated files
+/target/
