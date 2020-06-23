@@ -335,13 +335,17 @@ public class MtomSOAPSampler extends AbstractSampler {
 				result.setResponseHeaders(responseHeaders);
 				result.setHeadersSize(responseHeaders.length());
 				SOAPBody respBody = response.getSOAPBody();
-				if(respBody.hasFault()) {
+				result.setResponseData(SOAPUtils.soapElementToString(respBody));
+				result.setDataType("text");
+				if(!respBody.hasFault()) {
+					result.setResponseCodeOK();
+					result.setResponseMessageOK();
+					result.setSuccessful(true);
+				} else {
 					SOAPFault soapFault = respBody.getFault();
 					result.setResponseCode(soapFault.getFaultCode() + " @ " + soapFault.getFaultActor());
 					result.setResponseMessage(soapFault.getFaultString());
 					result.setSuccessful(false);
-					result.setResponseData(SOAPUtils.soapElementToString(soapFault));
-					result.setDataType("text");
 					return result;
 				}
 
@@ -421,10 +425,6 @@ public class MtomSOAPSampler extends AbstractSampler {
 					}
 				}
 
-				result.setDataType("text");
-				result.setResponseCodeOK();
-				result.setResponseMessageOK();
-				result.setSuccessful(true);
 				return result;
 			}
 		} catch (Exception e) {
