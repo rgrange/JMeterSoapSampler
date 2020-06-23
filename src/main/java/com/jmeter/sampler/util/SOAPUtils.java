@@ -5,12 +5,22 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.io.StringWriter;
 import java.util.Iterator;
 
 import javax.activation.DataHandler;
 import javax.xml.soap.AttachmentPart;
 import javax.xml.soap.MimeHeader;
+import javax.xml.soap.MimeHeaders;
+import javax.xml.soap.SOAPElement;
 import javax.xml.soap.SOAPException;
+import javax.xml.soap.SOAPPart;
+import javax.xml.transform.Source;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 
 public class SOAPUtils {
@@ -65,10 +75,15 @@ public class SOAPUtils {
 		return sb.toString();
 	}
 
-	public static String headersToString(Iterator<MimeHeader> it) throws SOAPException, IOException {
+	@SuppressWarnings("unchecked")
+	public static String headersToString(MimeHeaders mimeHeaders) {
+		return headersToString(mimeHeaders.getAllHeaders());
+	}
+
+	public static String headersToString(Iterator<MimeHeader> headers) {
 		StringBuffer sb = new StringBuffer();
-		while (it.hasNext()) {
-			MimeHeader header = it.next();
+		while (headers.hasNext()) {
+			MimeHeader header = headers.next();
 			sb.append(header.getName());
 			sb.append(": ");
 			sb.append(header.getValue());
@@ -76,4 +91,25 @@ public class SOAPUtils {
 		}
 		return sb.toString();
 	}
+
+	public static String soapPartToString(SOAPPart part) throws TransformerException, SOAPException {
+		TransformerFactory transformerFactory = TransformerFactory.newInstance();
+		Transformer transformer = transformerFactory.newTransformer();
+		Source content = part.getContent();
+		StringWriter writer = new StringWriter();
+		StreamResult stream = new StreamResult(writer);
+		transformer.transform(content, stream);
+		return writer.toString();
+	}
+
+	public static byte[] soapElementToString(SOAPElement part) throws TransformerException {
+		TransformerFactory transformerFactory = TransformerFactory.newInstance();
+		Transformer transformer = transformerFactory.newTransformer();
+		Source content = new DOMSource(part);
+		StringWriter writer = new StringWriter();
+		StreamResult stream = new StreamResult(writer);
+		transformer.transform(content, stream);
+		return writer.toString().getBytes();
+	}
+
 }

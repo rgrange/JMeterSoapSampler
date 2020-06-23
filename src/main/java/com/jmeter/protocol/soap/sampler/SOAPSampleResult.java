@@ -22,6 +22,12 @@ public class SOAPSampleResult extends SampleResult {
 		super(elapsed, true);
 	}
 
+	public SOAPSampleResult(SOAPSampleResult res) {
+		super(res);
+		this.soapAttachments = res.soapAttachments;
+		this.soapEnvelope = res.soapEnvelope;
+	}
+
 	public void addAttachment(AttachmentPart attachment) {
 		this.soapAttachments.add(attachment);
 	}
@@ -53,9 +59,4 @@ public class SOAPSampleResult extends SampleResult {
 		return this.soapEnvelope;
 	}
 
-	public SOAPSampleResult(SOAPSampleResult res) {
-		super(res);
-		this.soapAttachments = res.soapAttachments;
-		this.soapEnvelope = res.soapEnvelope;
-	}
 }

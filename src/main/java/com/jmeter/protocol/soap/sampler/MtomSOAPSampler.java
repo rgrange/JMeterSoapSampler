@@ -3,9 +3,6 @@ package com.jmeter.protocol.soap.sampler;
 import java.awt.Component;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.IOException;
-import java.io.StringWriter;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -27,12 +24,6 @@ import javax.xml.soap.SOAPException;
 import javax.xml.soap.SOAPFault;
 import javax.xml.soap.SOAPMessage;
 import javax.xml.soap.SOAPPart;
-import javax.xml.transform.Source;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerConfigurationException;
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.stream.StreamResult;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.entity.ContentType;
@@ -201,11 +192,11 @@ public class MtomSOAPSampler extends AbstractSampler {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public SampleResult sample(Entry e) {
+	public SampleResult sample(Entry entry) {
 		String url = this.getURLData();
 		String name = this.getName();
+
 		SOAPSampleResult result = new SOAPSampleResult();
-		//result.setSampleLabel(url);
 		result.setSampleLabel(name);
 		result.sampleStart();
 
@@ -319,49 +310,42 @@ public class MtomSOAPSampler extends AbstractSampler {
 					message.getMimeHeaders().setHeader(CONTENT_TYPE, contentType.toString());
 				}
 
-				ByteArrayOutputStream baos1 = new ByteArrayOutputStream();
-				message.writeTo(baos1);
-				baos1.close();
-				String fullRequest1 = url + "\n" + baos1.toString();
 				if(log.isDebugEnabled()) {
-					log.debug("Full request: \n" + fullRequest1);
+					ByteArrayOutputStream baos = new ByteArrayOutputStream();
+					message.writeTo(baos);
+					baos.close();
+					log.debug("Full request: \n" + baos.toString());
 				}
 
-				result.setSamplerData(fullRequest1);
+				result.setRequestHeaders(SOAPUtils.headersToString(message.getMimeHeaders()));
+				result.setSamplerData(SOAPUtils.soapPartToString(message.getSOAPPart()));
 				SOAPConnectionFactory soapConnectionFactory = SOAPConnectionFactory.newInstance();
 				SOAPConnection soapConnection = soapConnectionFactory.createConnection();
 				SOAPMessage response = soapConnection.call(message, endpoint);
 				result.sampleEnd();
+
 				if(log.isDebugEnabled()) {
-					ByteArrayOutputStream respSoapPart1 = new ByteArrayOutputStream();
-					response.writeTo(respSoapPart1);
-					log.debug("Full response: \n" + respSoapPart1.toString());
+					ByteArrayOutputStream baos = new ByteArrayOutputStream();
+					response.writeTo(baos);
+					log.debug("Full response: \n" + baos.toString());
 				}
 
-				SOAPPart respSoapPart2 = response.getSOAPPart();
-				TransformerFactory transformerFactory1 = TransformerFactory.newInstance();
-				Transformer transformer1 = transformerFactory1.newTransformer();
-				Source sourceContent1 = respSoapPart2.getContent();
-				StringWriter sw1 = new StringWriter();
-				StreamResult strResult = new StreamResult(sw1);
-				transformer1.transform(sourceContent1, strResult);
-				result.setSOAPEnvelope(sw1.toString());
-				String responseHeaders = SOAPUtils.headersToString(respSoapPart2.getAllMimeHeaders());
+				result.setSOAPEnvelope(SOAPUtils.soapPartToString(response.getSOAPPart()));
+				String responseHeaders = SOAPUtils.headersToString(response.getMimeHeaders());
 				result.setResponseHeaders(responseHeaders);
 				result.setHeadersSize(responseHeaders.length());
 				SOAPBody respBody = response.getSOAPBody();
 				if(respBody.hasFault()) {
-					SOAPFault attachmentFound1 = respBody.getFault();
-					result.setResponseCode(attachmentFound1.getFaultCode() + " @ " + attachmentFound1.getFaultActor());
-					result.setResponseMessage(attachmentFound1.getFaultString());
+					SOAPFault soapFault = respBody.getFault();
+					result.setResponseCode(soapFault.getFaultCode() + " @ " + soapFault.getFaultActor());
+					result.setResponseMessage(soapFault.getFaultString());
 					result.setSuccessful(false);
-					result.setResponseData(sw1.toString().getBytes());
+					result.setResponseData(SOAPUtils.soapElementToString(soapFault));
 					result.setDataType("text");
 					return result;
 				}
 
 				boolean attachmentFound = !this.getTreatAttachmentAsResponse();
-				String respContents = attachmentFound?sw1.toString():"";
 				int attachmentMode = this.getAttachmentAsResponseMode();
 				String attExpectedContentType = this.getAttachmentAsResponseContentType();
 				String attExpectedContentID = this.getAttachmentAsResponseContentID();
@@ -373,7 +357,7 @@ public class MtomSOAPSampler extends AbstractSampler {
 					((SampleResult)rootResult).setResponseCodeOK();
 					((SampleResult)rootResult).setResponseMessageOK();
 					((SampleResult)rootResult).setSampleLabel(SOAPMessages.getResString("soap_complete_soap_message"));
-					((SampleResult)rootResult).setResponseData(sw1.toString().getBytes());
+					((SampleResult)rootResult).setResponseData(SOAPUtils.soapElementToString(respBody));
 					((SampleResult)rootResult).setDataType("text");
 					((SampleResult)rootResult).setSuccessful(true);
 					((SampleResult)rootResult).sampleEnd();
@@ -431,53 +415,24 @@ public class MtomSOAPSampler extends AbstractSampler {
 						}
 
 						if(attachmentMatched) {
-							respContents = textRepresentation;
+							result.setResponseData(textRepresentation.getBytes());
 							attachmentFound = true;
 						}
 					}
 				}
 
-				result.setResponseData(respContents.getBytes());
 				result.setDataType("text");
 				result.setResponseCodeOK();
 				result.setResponseMessageOK();
 				result.setSuccessful(true);
 				return result;
 			}
-		} catch (SOAPException var37) {
+		} catch (Exception e) {
 			result.sampleEnd();
-			result.setResponseCode("SOAPException");
-			result.setResponseMessage(var37.getMessage());
+			result.setResponseCode(e.getClass().getName());
+			result.setResponseMessage(e.getMessage());
 			result.setSuccessful(false);
-			log.error("Exception in SOAP communication", var37);
-			return result;
-		} catch (MalformedURLException var38) {
-			result.sampleEnd();
-			result.setResponseCode("MalformedURLException");
-			result.setResponseMessage(var38.getMessage());
-			result.setSuccessful(false);
-			log.error("Exception in SOAP communication", var38);
-			return result;
-		} catch (IOException var39) {
-			result.sampleEnd();
-			result.setResponseCode("IOException");
-			result.setResponseMessage(var39.getMessage());
-			result.setSuccessful(false);
-			log.error("Exception in SOAP communication", var39);
-			return result;
-		} catch (TransformerConfigurationException var40) {
-			result.sampleEnd();
-			result.setResponseCode("TransformerConfigurationException");
-			result.setResponseMessage(var40.getMessage());
-			result.setSuccessful(false);
-			log.error("Exception in SOAP communication", var40);
-			return result;
-		} catch (TransformerException var41) {
-			result.sampleEnd();
-			result.setResponseCode("TransformerException");
-			result.setResponseMessage(var41.getMessage());
-			result.setSuccessful(false);
-			log.error("Exception in SOAP communication", var41);
+			log.error("Exception in SOAP communication", e);
 			return result;
 		}
 	}
@@ -580,8 +535,8 @@ public class MtomSOAPSampler extends AbstractSampler {
 				}
 
 			}
-		} catch (SOAPException var29) {
-			log.error("Caught exception while updating attachments", var29);
+		} catch (SOAPException e) {
+			log.error("Caught exception while updating attachments", e);
 			JOptionPane.showMessageDialog((Component)null, "Unable to update attachment references, see log file for details", "Error", 0);
 			throw new JMeterStopThreadException("Unable to update attachment references");
 		}
